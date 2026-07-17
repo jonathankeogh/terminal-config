@@ -1,0 +1,10 @@
+{
+  "model": "opus",
+  "effortLevel": "medium",
+  "tui": "fullscreen",
+  "theme": "auto",
+  "statusLine": {
+    "type": "command",
+    "command": "bash \"$HOME/.claude/statusline-command.sh\""
+  }
+}

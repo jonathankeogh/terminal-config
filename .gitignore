@@ -1,0 +1,20 @@
+# Only settings are tracked here. This ignore list is a safety net so that
+# secrets or session data never get committed, even if ~/.claude contents are
+# ever copied in.
+.credentials.json
+*.credentials.json
+history.jsonl
+stats-cache.json
+projects/
+sessions/
+session-env/
+shell-snapshots/
+file-history/
+downloads/
+cache/
+backups/
+daemon*
+jobs/
+plugins/
+*-cache.json
+.last-*
