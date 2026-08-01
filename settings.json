@@ -1,6 +1,7 @@
 {
   "model": "opus",
   "effortLevel": "medium",
+  "showThinkingSummaries": true,
   "tui": "fullscreen",
   "theme": "auto",
   "statusLine": {
