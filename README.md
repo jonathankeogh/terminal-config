@@ -9,14 +9,35 @@ configuration.
 - **`statusline-command.sh`** — custom status line: `user@host:dir (branch)`
   in PS1 colors, plus session cost and Claude.ai rate-limit usage
   (5-hour session % and 7-day weekly %).
+- **`AGENTS.md`** — global instructions applied to every project on the machine
+  (currently: reply in ASD-STE100 Simplified Technical English).
 
 ## Install on a new machine
 
+Clone the repo, then symlink each file into `~/.claude`. Symlinks mean there is
+only one copy of each file: edit it anywhere and the repo sees the change.
+
 ```bash
-cp settings.json          ~/.claude/settings.json
-cp statusline-command.sh  ~/.claude/statusline-command.sh
-chmod +x                  ~/.claude/statusline-command.sh
+git clone git@github.com:jonathankeogh/claude-code-settings.git ~/claude-code-settings
+mkdir -p ~/.claude/rules
+chmod +x ~/claude-code-settings/statusline-command.sh
+
+ln -sfn ~/claude-code-settings/settings.json         ~/.claude/settings.json
+ln -sfn ~/claude-code-settings/statusline-command.sh ~/.claude/statusline-command.sh
+ln -sfn ~/claude-code-settings/AGENTS.md             ~/.claude/rules/AGENTS.md
 ```
+
+If `~/.claude` already has real files, move them away first — `ln -sfn` does not
+replace a regular file safely in every shell:
+
+```bash
+mkdir -p ~/.claude/backups/pre-symlink
+mv ~/.claude/settings.json ~/.claude/statusline-command.sh ~/.claude/rules/AGENTS.md \
+   ~/.claude/backups/pre-symlink/ 2>/dev/null
+```
+
+To sync between machines, commit and push here, then `git pull` on the other
+machine. Git is not automatic.
 
 ## Not tracked
 
