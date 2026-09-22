@@ -1,6 +1,6 @@
 {
   "permissions": {
-    "defaultMode": "bypassPermissions"
+    "defaultMode": "auto"
   },
   "model": "opus",
   "hooks": {
@@ -22,7 +22,6 @@
   "effortLevel": "medium",
   "tui": "fullscreen",
   "showThinkingSummaries": true,
-  "skipDangerousModePermissionPrompt": true,
   "theme": "auto",
   "agentPushNotifEnabled": true,
   "attribution": {
