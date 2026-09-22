@@ -5,7 +5,8 @@ configuration.
 
 ## Contents
 
-- **`settings.json`** — Claude Code settings (model, theme, TUI mode, status line hook).
+- **`settings.json`** — Claude Code settings (model, theme, TUI mode, status line hook,
+  no Claude attribution on commits or PRs).
 - **`statusline-command.sh`** — custom status line: `user@host:dir (branch)`
   in PS1 colors, plus session cost and Claude.ai rate-limit usage
   (5-hour session % and 7-day weekly %).
