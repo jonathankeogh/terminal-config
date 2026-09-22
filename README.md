@@ -9,8 +9,7 @@ configuration.
 - **`statusline-command.sh`** — custom status line: `user@host:dir (branch)`
   in PS1 colors, plus session cost and Claude.ai rate-limit usage
   (5-hour session % and 7-day weekly %).
-- **`AGENTS.md`** — global instructions applied to every project on the machine
-  (currently: reply in ASD-STE100 Simplified Technical English).
+- **`AGENTS.md`** — global instructions applied to every project on the machine.
 
 ## Install on a new machine
 

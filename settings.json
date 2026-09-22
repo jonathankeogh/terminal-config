@@ -3,15 +3,6 @@
     "defaultMode": "bypassPermissions"
   },
   "model": "opus",
-  "statusLine": {
-    "type": "command",
-    "command": "bash \"$HOME/.claude/statusline-command.sh\""
-  },
-  "effortLevel": "medium",
-  "showThinkingSummaries": true,
-  "tui": "fullscreen",
-  "skipDangerousModePermissionPrompt": true,
-  "theme": "auto",
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -23,5 +14,15 @@
         ]
       }
     ]
-  }
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash \"$HOME/.claude/statusline-command.sh\""
+  },
+  "effortLevel": "medium",
+  "tui": "fullscreen",
+  "showThinkingSummaries": true,
+  "skipDangerousModePermissionPrompt": true,
+  "theme": "auto",
+  "agentPushNotifEnabled": true
 }
