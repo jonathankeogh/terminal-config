@@ -10,7 +10,11 @@
 input=$(cat)
 
 # Parse the payload once; emit one field per line so paths with spaces survive.
-mapfile -t fields < <(printf '%s' "$input" | python3 -c '
+# Read with a while loop rather than mapfile, which macOS's bash 3.2 lacks.
+fields=()
+while IFS= read -r line; do
+    fields+=("$line")
+done < <(printf '%s' "$input" | python3 -c '
 import sys, json
 try:
     data = json.load(sys.stdin)
@@ -39,7 +43,11 @@ five_h="${fields[2]}"
 week="${fields[3]}"
 ctx_used="${fields[4]}"
 
-dir="${cwd/#$HOME/\~}"
+# Abbreviate $HOME to ~ (not ${cwd/#$HOME/\~}: bash 3.2 keeps the backslash).
+dir="$cwd"
+if [ "$cwd" = "$HOME" ] || [ "${cwd#"$HOME"/}" != "$cwd" ]; then
+    dir="~${cwd#"$HOME"}"
+fi
 user=$(whoami)
 host=$(hostname -s)
 
