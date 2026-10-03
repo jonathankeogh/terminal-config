@@ -17,7 +17,8 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "bash \"$HOME/.claude/statusline-command.sh\""
+    "command": "bash \"$HOME/.claude/statusline-command.sh\"",
+    "refreshInterval": 10
   },
   "effortLevel": "medium",
   "tui": "fullscreen",

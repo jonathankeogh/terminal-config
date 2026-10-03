@@ -30,11 +30,46 @@ def pct(window):
 cw = data.get("context_window") or {}
 cu = cw.get("used_percentage")
 ctx = "" if cu is None else "%d" % round(cu)
+# Prompt-cache time left: the cache TTL restarts on every API call that reads or
+# writes it, so count down from the last assistant entry in the transcript. The
+# window is 1h if that call wrote 1h-tier cache, else 5m. Reads only the tail.
+cache_left = ""
+cache_ttl = ""
+tp = data.get("transcript_path")
+if tp:
+    try:
+        import os
+        from datetime import datetime, timezone
+        with open(tp, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            f.seek(max(0, f.tell() - 2_000_000))
+            lines = f.read().splitlines()
+        for raw in reversed(lines):
+            if b"\"assistant\"" not in raw:
+                continue
+            try:
+                e = json.loads(raw)
+            except Exception:
+                continue
+            usage = (e.get("message") or {}).get("usage")
+            if e.get("type") != "assistant" or not usage or not e.get("timestamp"):
+                continue
+            cc = usage.get("cache_creation") or {}
+            ttl = 300 if cc.get("ephemeral_5m_input_tokens") and not cc.get("ephemeral_1h_input_tokens") else 3600
+            ts = datetime.fromisoformat(e["timestamp"].replace("Z", "+00:00"))
+            age = (datetime.now(timezone.utc) - ts).total_seconds()
+            cache_left = "%d" % max(0, ttl - age)
+            cache_ttl = "%d" % ttl
+            break
+    except Exception:
+        pass
 print(cwd)
 print(cost)
 print(pct("five_hour"))
 print(pct("seven_day"))
 print(ctx)
+print(cache_left)
+print(cache_ttl)
 ')
 
 cwd="${fields[0]}"
@@ -42,6 +77,8 @@ cost="${fields[1]}"
 five_h="${fields[2]}"
 week="${fields[3]}"
 ctx_used="${fields[4]}"
+cache_left="${fields[5]}"
+cache_ttl="${fields[6]}"
 
 # Abbreviate $HOME to ~ (not ${cwd/#$HOME/\~}: bash 3.2 keeps the backslash).
 dir="$cwd"
@@ -86,4 +123,19 @@ if [ -n "$ctx_used" ]; then
     context_segment=$(printf ' ctx \033[%sm%s%%\033[0m/%s%%' "$code" "$ctx_used" "$threshold")
 fi
 
-printf '\033[1;32m%s@%s\033[0m:%s\033[1;33m%s\033[0m%s%s%s' "$user" "$host" "$dir" "$branch_segment" "$cost_segment" "$usage_segment" "$context_segment"
+# Prompt-cache time left as m:ss. Green, then yellow in the last fifth of the
+# window, then red "cold" once expired (the next message re-writes the cache).
+cache_segment=""
+if [ -n "$cache_left" ]; then
+    if [ "$cache_left" -le 0 ]; then
+        cache_segment=$(printf ' cache \033[1;31mcold\033[0m')
+    else
+        code=32
+        if [ "$cache_left" -le $((cache_ttl / 5)) ]; then
+            code=33
+        fi
+        cache_segment=$(printf ' cache \033[%sm%d:%02d\033[0m' "$code" $((cache_left / 60)) $((cache_left % 60)))
+    fi
+fi
+
+printf '\033[1;32m%s@%s\033[0m:%s\033[1;33m%s\033[0m%s%s%s%s' "$user" "$host" "$dir" "$branch_segment" "$cost_segment" "$usage_segment" "$context_segment" "$cache_segment"
