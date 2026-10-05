@@ -124,12 +124,13 @@ if [ -n "$cost" ]; then
     cost_segment=$(printf ' \033[36m$%s\033[0m' "$cost")
 fi
 
-usage_segment=""
+sess_segment=""
 if [ -n "$five_h" ]; then
-    usage_segment+=$(printf ' \033[35m%s%% sess\033[0m' "$five_h")
+    sess_segment=$(printf ' \033[35m%s%% sess\033[0m' "$five_h")
 fi
+week_segment=""
 if [ -n "$week" ]; then
-    usage_segment+=$(printf ' \033[35m%s%% wk\033[0m' "$week")
+    week_segment=$(printf ' \033[35m%s%% wk\033[0m' "$week")
 fi
 
 # Context window used %, shown against the auto-compact threshold (default 95%,
@@ -159,4 +160,44 @@ if [ -n "$cache_left" ]; then
     fi
 fi
 
-printf '\033[1;32m%s@%s\033[0m:%s\033[1;33m%s\033[0m%s%s%s%s%s' "$user" "$host" "$dir" "$branch_segment" "$model_segment" "$cost_segment" "$usage_segment" "$context_segment" "$cache_segment"
+identity=$(printf '\033[1;32m%s@%s\033[0m:%s\033[1;33m%s\033[0m' "$user" "$host" "$dir" "$branch_segment")
+
+# Pack the segments into as few lines as fit the terminal, at most 4; anything
+# past line 4 stays on line 4. The payload has no terminal width, so try
+# $COLUMNS, then ask the controlling terminal; if neither works, use one line.
+cols="${COLUMNS:-}"
+if [ -z "$cols" ]; then
+    cols=$( { stty size </dev/tty; } 2>/dev/null | cut -d' ' -f2)
+fi
+case "$cols" in
+    ''|*[!0-9]*|0) width=0 ;;
+    *) width=$((cols - 4)) ;;
+esac
+max_lines=4
+
+visible_len() {
+    printf '%s' "$1" | sed 's/\x1b\[[0-9;]*m//g' | LC_ALL=C.UTF-8 wc -m | tr -d ' '
+}
+
+out=""
+line=""
+line_len=0
+lines=1
+for seg in "$identity" "$model_segment" "$cost_segment" "$sess_segment" "$week_segment" "$context_segment" "$cache_segment"; do
+    seg="${seg# }"
+    [ -z "$seg" ] && continue
+    len=$(visible_len "$seg")
+    if [ -z "$line" ]; then
+        line="$seg"
+        line_len=$len
+    elif [ "$width" -gt 0 ] && [ $((line_len + 1 + len)) -gt "$width" ] && [ "$lines" -lt "$max_lines" ]; then
+        out+="$line"$'\n'
+        line="$seg"
+        line_len=$len
+        lines=$((lines + 1))
+    else
+        line+=" $seg"
+        line_len=$((line_len + 1 + len))
+    fi
+done
+printf '%s%s' "$out" "$line"
