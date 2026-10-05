@@ -3,6 +3,9 @@
 #   PS1="\[\e[1;32m\]\u@\h\[\e[0m\]:\w\[\e[1;33m\]\$(__git_ps1 ' (%s)')\[\e[0m\]\$ "
 # Plus the session cost (USD) from cost.total_cost_usd, and Claude.ai rate-limit
 # usage: session (5-hour) and weekly (7-day) percentages from rate_limits.
+# Also the active model and reasoning effort (model.display_name, effort.level;
+# effort is absent for models without effort support), plus "fast" in fast mode
+# and "no think" when extended thinking is off.
 # (rate_limits appears only for Pro/Max after the first API response; each window
 # may be absent, so those segments simply don't render when missing.)
 # Uses python3 (not jq) so it has no extra dependencies.
@@ -19,7 +22,7 @@ import sys, json
 try:
     data = json.load(sys.stdin)
 except Exception:
-    print(); print(); print(); print(); sys.exit()
+    sys.exit()
 cwd = (data.get("workspace") or {}).get("current_dir") or data.get("cwd") or ""
 cost = (data.get("cost") or {}).get("total_cost_usd")
 cost = "" if cost is None else "%.2f" % cost
@@ -70,6 +73,10 @@ print(pct("seven_day"))
 print(ctx)
 print(cache_left)
 print(cache_ttl)
+print((data.get("model") or {}).get("display_name") or "")
+print((data.get("effort") or {}).get("level") or "")
+print("1" if data.get("fast_mode") else "")
+print("1" if (data.get("thinking") or {}).get("enabled") is False else "")
 ')
 
 cwd="${fields[0]}"
@@ -79,6 +86,10 @@ week="${fields[3]}"
 ctx_used="${fields[4]}"
 cache_left="${fields[5]}"
 cache_ttl="${fields[6]}"
+model="${fields[7]}"
+effort="${fields[8]}"
+fast="${fields[9]}"
+no_think="${fields[10]}"
 
 # Abbreviate $HOME to ~ (not ${cwd/#$HOME/\~}: bash 3.2 keeps the backslash).
 dir="$cwd"
@@ -96,6 +107,16 @@ fi
 branch_segment=""
 if [ -n "$branch" ]; then
     branch_segment=" ($branch)"
+fi
+
+# Active model and reasoning effort, e.g. "Opus 5.5 · medium".
+model_segment=""
+if [ -n "$model" ]; then
+    model_info="$model"
+    [ -n "$effort" ] && model_info+=" · $effort"
+    [ -n "$fast" ] && model_info+=" · fast"
+    [ -n "$no_think" ] && model_info+=" · no think"
+    model_segment=$(printf ' \033[1;34m%s\033[0m' "$model_info")
 fi
 
 cost_segment=""
@@ -138,4 +159,4 @@ if [ -n "$cache_left" ]; then
     fi
 fi
 
-printf '\033[1;32m%s@%s\033[0m:%s\033[1;33m%s\033[0m%s%s%s%s' "$user" "$host" "$dir" "$branch_segment" "$cost_segment" "$usage_segment" "$context_segment" "$cache_segment"
+printf '\033[1;32m%s@%s\033[0m:%s\033[1;33m%s\033[0m%s%s%s%s%s' "$user" "$host" "$dir" "$branch_segment" "$model_segment" "$cost_segment" "$usage_segment" "$context_segment" "$cache_segment"

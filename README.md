@@ -8,8 +8,9 @@ configuration.
 - **`settings.json`** — Claude Code settings (model, theme, TUI mode, status line hook,
   no Claude attribution on commits or PRs).
 - **`statusline-command.sh`** — custom status line: `user@host:dir (branch)`
-  in PS1 colors, plus session cost and Claude.ai rate-limit usage
-  (5-hour session % and 7-day weekly %).
+  in PS1 colors, plus the active model and reasoning effort (e.g. `Opus 5.5 · medium`),
+  session cost, Claude.ai rate-limit usage (5-hour session % and 7-day weekly %),
+  context-window usage, and prompt-cache time left.
 - **`AGENTS.md`** — global instructions applied to every project on the machine.
 
 ## Install on a new machine
