@@ -35,3 +35,35 @@ export PATH="$HOME/.local/bin:$PATH"
 
 # opencode
 export PATH=/Users/jkeogh/.opencode/bin:$PATH
+
+# VPS: mosh + tmux (survives sleep/wifi changes); falls back to auto-reconnecting ssh
+vps() {
+  if command -v mosh >/dev/null && ssh -o BatchMode=yes -o ConnectTimeout=5 vps 'command -v mosh-server' >/dev/null 2>&1; then
+    mosh vps -- sh -c 'tmux attach 2>/dev/null || tmux new'
+    return
+  fi
+  while true; do
+    ssh -t vps 'tmux attach 2>/dev/null || tmux new'
+    [ $? -ne 255 ] && break   # 255 = connection lost; anything else = you exited/detached
+    echo "\nConnection lost - reconnecting in 3s (Ctrl+C to stop)..."
+    sleep 3
+  done
+}
+
+# ssh into angelsea and attach to the persistent "macbook" tmux session
+alias angelsea="ssh -t angelsea 'tmux new -A -s macbook'"
+
+# Generate a video with audio on angelsea and open it here.
+# Usage: vclip "prompt" [seconds]     e.g.  vclip "a fox in the snow, wind howling" 10
+vclip() {
+  local prompt="$1" secs="${2:-30}" name="clip-$(date +%Y%m%d-%H%M%S).mp4"
+  local host="angelsea" dest="$HOME/Movies/video-gen"
+  mkdir -p "$dest"
+  print -r -- "$prompt" | ssh "$host" \
+    "cd ~/video-gen && .venv/bin/python make_clip.py \"\$(cat)\" --seconds $secs --out outputs/$name ${*:3}" \
+  && scp "$host:video-gen/outputs/$name" "$dest/" && open "$dest/$name"
+}
+
+# Turn off mouse reporting if a program left it on (stops scrolling from typing escape codes)
+_reset_mouse_mode() { printf '\e[?1000l\e[?1002l\e[?1003l\e[?1006l\e[?1015l' }
+autoload -Uz add-zsh-hook && add-zsh-hook precmd _reset_mouse_mode
