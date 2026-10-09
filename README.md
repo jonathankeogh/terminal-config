@@ -12,6 +12,11 @@ configuration.
   session cost, Claude.ai rate-limit usage (5-hour session % and 7-day weekly %),
   context-window usage, and prompt-cache time left. Wraps onto up to 4 lines
   when the terminal is too narrow for one.
+- **`desktop-statusline/`** — the status line's usage figures for the desktop
+  app's Code tab, which ignores the `statusLine` setting: session cost, rate-limit
+  usage, context use and prompt-cache time left. A Claude Code plugin (function
+  hooks) that reads them from the plugin API and shows them with `$.ui.status`. The
+  identity, model and effort segments are left out because the app shows those itself.
 - **`AGENTS.md`** — global instructions applied to every project on the machine.
 
 ## Install on a new machine
