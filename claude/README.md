@@ -1,4 +1,4 @@
-# claude-code-settings
+# claude
 
 Version-controlled backup of my [Claude Code](https://claude.com/claude-code)
 configuration.
@@ -19,51 +19,15 @@ configuration.
   identity, model and effort segments are left out because the app shows those itself.
 - **`AGENTS.md`** — global instructions applied to every project on the machine.
 
-## Install on a new machine
+## Install
 
-Clone the repo, then symlink each file into `~/.claude`. Symlinks mean there is
-only one copy of each file: edit it anywhere and the repo sees the change.
-
-```bash
-git clone git@github.com:jonathankeogh/claude-code-settings.git ~/claude-code-settings
-mkdir -p ~/.claude/rules
-chmod +x ~/claude-code-settings/statusline-command.sh
-
-ln -sfn ~/claude-code-settings/settings.json         ~/.claude/settings.json
-ln -sfn ~/claude-code-settings/statusline-command.sh ~/.claude/statusline-command.sh
-ln -sfn ~/claude-code-settings/AGENTS.md             ~/.claude/rules/AGENTS.md
-```
-
-For the desktop status line, link the mod and load it from `~/.zshrc` for the
-desktop app only. The app reads its environment from a shell with no terminal
-attached, so terminal Claude Code never loads the mod. The link's name, `usage`,
-is the label the app shows before the line:
-
-```bash
-mkdir -p ~/.claude/desktop-mods
-ln -sfn ~/claude-code-settings/desktop-statusline ~/.claude/desktop-mods/usage
-cat >> ~/.zshrc <<'ZSH'
-if [[ -t 0 ]]; then
-  unset CLAUDE_CODE_PLUGIN_DIRS
-else
-  export CLAUDE_CODE_PLUGIN_DIRS="$HOME/.claude/desktop-mods/usage"
-fi
-ZSH
-```
-
-Quit and reopen the desktop app afterwards so it reads the new environment.
-
-If `~/.claude` already has real files, move them away first — `ln -sfn` does not
-replace a regular file safely in every shell:
-
-```bash
-mkdir -p ~/.claude/backups/pre-symlink
-mv ~/.claude/settings.json ~/.claude/statusline-command.sh ~/.claude/rules/AGENTS.md \
-   ~/.claude/backups/pre-symlink/ 2>/dev/null
-```
-
-To sync between machines, commit and push here, then `git pull` on the other
-machine. Git is not automatic.
+`install.sh` at the repo root symlinks `settings.json`, `statusline-command.sh` and
+`AGENTS.md` into `~/.claude`, and on macOS links `desktop-statusline/` to
+`~/.claude/desktop-mods/usage`. `mac/.zshrc` sets `CLAUDE_CODE_PLUGIN_DIRS` to
+that path in desktop app sessions only: the app reads its environment from a
+shell with no terminal attached, so terminal Claude Code never loads the mod. The
+link's name, `usage`, is the label the app shows before the line. Quit and reopen
+the desktop app after installing so it reads the new environment.
 
 ## Not tracked
 
