@@ -1,17 +1,202 @@
-#!/usr/bin/env bash
-# This repo is public: refuse any commit whose staged changes contain a secret.
-# install.sh points core.hooksPath here. Bypass a false alarm with --no-verify.
-# linux/packages.sh installs gitleaks in ~/.local/bin, which a non-interactive
-# shell may not have on PATH
-PATH="$HOME/.local/bin:$PATH"
-if ! command -v gitleaks >/dev/null; then
-	echo "pre-commit: gitleaks is not installed, so secrets cannot be checked." >&2
-	echo "Run ./install.sh --packages, or commit with --no-verify." >&2
-	exit 1
-fi
-# `gitleaks git` is v8.19+; older releases (Ubuntu's apt package) only have `protect`
-if gitleaks git --help >/dev/null 2>&1; then
-	exec gitleaks git --pre-commit --staged --redact --no-banner --log-level warn
-else
-	exec gitleaks protect --staged --redact --no-banner --log-level warn
-fi
+#!/usr/bin/env python3
+"""Refuse a commit whose staged changes contain a secret (this repo is public).
+
+The checks are gitleaks' (https://github.com/gitleaks/gitleaks, MIT): its rules
+live in secret-rules.json beside this file, and this applies them the way
+`gitleaks git --pre-commit --staged` does, minus the decoding of base64 and
+other encoded blobs, which a config repo has no use for. It needs only
+Python 3.8+ and updates with `git pull`; install.sh points core.hooksPath here.
+
+    git commit ...                       checks the lines being added
+    .githooks/pre-commit scan FILE...    checks whole files instead
+    ... gitleaks:allow                   on a line, skips that line
+    git commit --no-verify               skips the check for a false alarm
+"""
+import codecs
+import json
+import math
+import os
+import re
+import subprocess
+import sys
+
+RULES_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "secret-rules.json")
+ALLOW_SIGNATURE = "gitleaks:allow"
+MAX_LINE = 5000  # longer lines are skipped: a config repo has none, and they can be slow to match
+
+
+def compile_(pattern):
+    return re.compile(pattern, re.ASCII) if pattern else None
+
+
+class Allowlist:
+    def __init__(self, a):
+        self.and_ = a["condition"] == "AND"
+        self.target = a["regexTarget"]
+        self.has_commits = bool(a["commits"])  # never matches: staged changes have no commit
+        self.paths = compile_(a["paths"])
+        self.regexes = compile_(a["regexes"])
+        self.stopwords = a["stopwords"]
+
+    def path_ok(self, path):
+        return bool(self.paths and self.paths.search(path))
+
+    def skips_file(self, path):
+        if not self.and_:
+            return self.path_ok(path)
+        if self.regexes or self.stopwords:
+            return False  # decided per finding
+        return not self.has_commits and bool(self.paths) and self.path_ok(path)
+
+    def skips_finding(self, secret, match, line, path):
+        target = {"match": match, "line": line}.get(self.target, secret)
+        regex_ok = bool(target and self.regexes and self.regexes.search(target))
+        stopword = any(w in secret.lower() for w in self.stopwords)
+        if not self.and_:
+            return regex_ok or stopword
+        checks = ([False] if self.has_commits else []) + ([self.path_ok(path)] if self.paths else [])
+        checks += ([regex_ok] if self.regexes else []) + ([stopword] if self.stopwords else [])
+        return all(checks)
+
+
+class Rule:
+    def __init__(self, r):
+        self.id = r["id"]
+        self.regex = compile_(r["regex"])
+        self.path = compile_(r["path"])
+        self.entropy = r["entropy"]
+        self.group = r["secretGroup"]
+        self.keywords = r["keywords"]
+        self.allowlists = [Allowlist(a) for a in r["allowlists"]]
+
+
+def load_rules():
+    with open(RULES_FILE) as f:
+        data = json.load(f)
+    rules = [Rule(r) for r in data["rules"] if r["regex"]]  # path-only rules flag archives; none here
+    return [Allowlist(a) for a in data["allowlists"]], rules
+
+
+def entropy(s):
+    # As gitleaks: counts per character over the length in UTF-8 bytes
+    n = len(s.encode("utf-8", "surrogateescape"))
+    counts = {}
+    for ch in s:
+        counts[ch] = counts.get(ch, 0) + 1
+    return -sum(c / n * math.log2(c / n) for c in counts.values()) if n else 0.0
+
+
+def detect(text, path, global_allow, rules, first_line=1):
+    if any(a.skips_file(path) for a in global_allow):
+        return []
+    lower = text.lower()
+    findings = []
+    for rule in rules:
+        if rule.keywords and not any(k in lower for k in rule.keywords):
+            continue
+        if any(a.skips_file(path) for a in rule.allowlists):
+            continue
+        if rule.path and not rule.path.search(path):
+            continue
+        for m in rule.regex.finditer(text):
+            match = text[m.start():m.end()].strip("\n")
+            start = m.start()
+            ls = text.rfind("\n", 0, start) + 1
+            le = text.find("\n", start + len(match))
+            line = text[ls:len(text) if le < 0 else le]
+            if ALLOW_SIGNATURE in line:
+                continue
+            secret = match
+            g = rule.regex.search(match)  # gitleaks re-matches the match to pick the secret
+            if g and rule.regex.groups:
+                groups = [x or "" for x in g.groups()]
+                if rule.group > len(groups):
+                    continue
+                secret = groups[rule.group - 1] if rule.group else next((x for x in groups if x), match)
+            if rule.entropy and entropy(secret) <= rule.entropy:
+                continue
+            if any(a.skips_finding(secret, match, line, path) for a in global_allow + rule.allowlists):
+                continue
+            findings.append({"rule": rule.id, "file": path, "secret": secret,
+                             "line": first_line + text.count("\n", 0, start)})
+    # A generic finding gives way to a specific one on the same line
+    return [f for f in findings if not ("generic" in f["rule"] and any(
+        g["line"] == f["line"] and "generic" not in g["rule"] and f["secret"] in g["secret"]
+        for g in findings))]
+
+
+def drop_long_lines(text, path):
+    lines = text.split("\n")
+    if all(len(l) <= MAX_LINE for l in lines):
+        return text
+    print("secret check: skipped lines over %d characters in %s" % (MAX_LINE, path), file=sys.stderr)
+    return "\n".join("" if len(l) > MAX_LINE else l for l in lines)
+
+
+def diff_path(p):
+    """The file name from a `+++ b/name` line; None for a deleted file."""
+    if p.endswith("\t"):  # git adds a tab after a name with spaces
+        p = p[:-1]
+    if p.startswith('"') and p.endswith('"'):  # unusual characters: C-quoted, octal UTF-8 bytes
+        p = codecs.escape_decode(p[1:-1].encode())[0].decode("utf-8", "replace")
+    if p == "/dev/null":
+        return None
+    return p[2:] if p.startswith("b/") else p
+
+
+def staged_hunks():
+    """Yield (path, added lines, first line number) for each staged hunk."""
+    diff = subprocess.run(["git", "diff", "-U0", "--no-ext-diff", "--no-color", "--staged", "."],
+                          stdout=subprocess.PIPE, check=True).stdout.decode("utf-8", "replace")
+    path, added, first, last_was_add = None, [], 0, False
+    for l in diff.split("\n"):
+        if l.startswith(("diff --git ", "@@ ")) and path and added:
+            yield path, "".join(added), first
+            added = []
+        if l.startswith("diff --git "):
+            path = None
+        elif l.startswith("+++ "):
+            path = diff_path(l[4:])
+        elif l.startswith("@@ "):
+            m = re.match(r"@@ -\S+ \+(\d+)", l)
+            first, last_was_add = int(m.group(1)) if m else 0, False
+        elif l.startswith("+") and path:
+            added.append(l[1:] + "\n")
+            last_was_add = True
+        elif l.startswith("\\ No newline") and last_was_add and added:
+            added[-1] = added[-1][:-1]
+        elif l.startswith("-"):
+            last_was_add = False
+    if path and added:
+        yield path, "".join(added), first
+
+
+def main(argv):
+    global_allow, rules = load_rules()
+    findings = []
+    if argv[:1] == ["scan"]:
+        for p in argv[1:]:
+            with open(p, encoding="utf-8", errors="replace", newline="") as fh:
+                findings += detect(drop_long_lines(fh.read(), p), p, global_allow, rules)
+        if os.environ.get("SECRET_CHECK_JSON"):
+            json.dump(findings, sys.stdout)
+            return 0
+    else:
+        own = os.path.relpath(RULES_FILE)
+        for path, text, first in staged_hunks():
+            if path != own:
+                findings += detect(drop_long_lines(text, path), path, global_allow, rules, first)
+    if not findings:
+        return 0
+    print("Secret check: %d likely secret(s), commit refused:" % len(findings), file=sys.stderr)
+    for f in sorted(findings, key=lambda f: (f["file"], f["line"])):
+        s = f["secret"]
+        print("  %s:%d  %s  (%s)" % (f["file"], f["line"], f["rule"], s[:4] + "..." if len(s) > 8 else "..."),
+              file=sys.stderr)
+    print("Keep secrets in ~/.shell.local. For a false alarm, add 'gitleaks:allow' to the\n"
+          "line or commit with --no-verify.", file=sys.stderr)
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

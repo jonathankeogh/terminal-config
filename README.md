@@ -19,7 +19,7 @@ git clone git@github.com:jonathankeogh/terminal-config.git ~/terminal-config
 
 `--packages` first installs the tools the config uses: `mac/Brewfile` on macOS,
 and on Linux (Ubuntu/Debian) `linux/packages.sh`, which uses apt plus the latest
-yazi and gitleaks releases from GitHub. Leave it off to only link files.
+yazi release from GitHub. Leave it off to only link files.
 
 `install.sh` symlinks each file into `$HOME`, so there is one copy of each file
 and editing it anywhere edits the repo. It is safe to re-run. Any real file in
@@ -38,8 +38,13 @@ This repo is public, so nothing secret or machine-specific goes in it:
   `.gitconfig` includes it last, so it wins.
 
 As a safety net, `install.sh` points this repo's git hooks at `.githooks/`, whose
-pre-commit hook runs `gitleaks` on the staged changes and refuses a commit that
-contains a secret. For a false alarm, commit with `--no-verify`.
+pre-commit hook refuses a commit that adds a secret. It applies
+[gitleaks](https://github.com/gitleaks/gitleaks)' ~220 rules (copied into
+`.githooks/secret-rules.json`) with a small Python script, so nothing needs
+installing and `git pull` updates it everywhere. It leaves out gitleaks' decoding
+of base64 and other encoded blobs, which a config repo does not have. For a false
+alarm, add `gitleaks:allow` to the line, or commit with `--no-verify`. To pick up
+newer gitleaks rules, run `.githooks/update-secret-rules v<version>`.
 
 ## Syncing
 
