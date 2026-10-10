@@ -1,0 +1,5 @@
+{
+  "name": "usage",
+  "version": "0.1.0",
+  "description": "Port of statusline-command.sh for the desktop app's Code tab, via $.ui.status"
+}
