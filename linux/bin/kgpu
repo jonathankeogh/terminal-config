@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# Run a Python script on Kaggle's free GPU (2x T4) and print the output.
+# Usage: kgpu script.py [slug]   -> results land in ./kaggle-out/<slug>/
+set -euo pipefail
+K=~/.local/bin/kaggle
+script=$(realpath "$1"); slug=${2:-$(basename "$1" .py | tr '_ ' '--' | tr A-Z a-z)}
+user=$($K config view | awk '/username:/{print $3}')
+work=$(mktemp -d); cp "$script" "$work/"
+cat > "$work/kernel-metadata.json" <<J
+{"id":"$user/$slug","title":"$slug","code_file":"$(basename "$script")","language":"python",
+ "kernel_type":"script","is_private":true,"enable_gpu":true,"enable_internet":true,
+ "dataset_sources":[],"competition_sources":[],"kernel_sources":[]}
+J
+gpu_used() { $K quota --format json | python3 -c "import json,sys; print([r for r in json.load(sys.stdin) if r['resource']=='GPU'][0]['used'].rstrip('h'))"; }
+before=$(gpu_used)
+$K kernels push -p "$work"
+while :; do
+  s=$($K kernels status "$user/$slug"); echo "$s"
+  echo "$s" | grep -qiE 'complete|error|cancel' && break; sleep 20
+done
+out="./kaggle-out/$slug"; $K kernels output "$user/$slug" -p "$out" -o >/dev/null
+python3 -c "import json,sys; [print(e.get('data',''),end='') for e in json.load(open(sys.argv[1]))]" "$out/$slug.log" || cat "$out/$slug.log"
+echo "--- files in $out"; ls "$out"
+echo "--- GPU quota"
+$K quota --format json | python3 -c "
+import json,sys
+from datetime import datetime,timezone
+from zoneinfo import ZoneInfo
+g=[r for r in json.load(sys.stdin) if r['resource']=='GPU'][0]
+used=float(g['used'].rstrip('h')); run=used-float(sys.argv[1])
+reset=datetime.fromisoformat(g['refreshAt']).replace(tzinfo=timezone.utc).astimezone(ZoneInfo("Europe/Dublin"))
+print(f\"this run: ~{run:.2f}h  |  used {g['used']} of {g['total']}  |  {g['remaining']} left  |  resets {reset:%a %d %b %H:%M} Irish time\")
+" "$before"
