@@ -29,6 +29,9 @@ link shared/.terminfo         "$HOME/.terminfo"
 link claude/settings.json         "$HOME/.claude/settings.json"
 link claude/statusline-command.sh "$HOME/.claude/statusline-command.sh"
 link claude/AGENTS.md             "$HOME/.claude/rules/AGENTS.md"
+# Desktop app status line mod, loaded via CLAUDE_CODE_PLUGIN_DIRS in settings.json.
+# Linked everywhere so that path exists; the mod stays off in terminal sessions.
+link claude/desktop-statusline    "$HOME/.claude/desktop-mods/usage"
 
 # tmux session persistence plugins (loaded by .tmux.conf)
 for p in tmux-resurrect tmux-continuum; do
@@ -41,8 +44,6 @@ case "$(uname -s)" in
 Darwin)
 	link mac/.zshrc    "$HOME/.zshrc"
 	link mac/.zprofile "$HOME/.zprofile"
-	# Desktop app status line mod; .zshrc loads it in desktop sessions only
-	link claude/desktop-statusline "$HOME/.claude/desktop-mods/usage"
 	;;
 Linux)
 	link linux/.bashrc.local "$HOME/.bashrc.local"

@@ -22,12 +22,14 @@ configuration.
 ## Install
 
 `install.sh` at the repo root symlinks `settings.json`, `statusline-command.sh` and
-`AGENTS.md` into `~/.claude`, and on macOS links `desktop-statusline/` to
-`~/.claude/desktop-mods/usage`. `mac/.zshrc` sets `CLAUDE_CODE_PLUGIN_DIRS` to
-that path in desktop app sessions only: the app reads its environment from a
-shell with no terminal attached, so terminal Claude Code never loads the mod. The
-link's name, `usage`, is the label the app shows before the line. Quit and reopen
-the desktop app after installing so it reads the new environment.
+`AGENTS.md` into `~/.claude`, and links `desktop-statusline/` to
+`~/.claude/desktop-mods/usage`. `settings.json` loads that folder through
+`CLAUDE_CODE_PLUGIN_DIRS` in its `env` block. (Exporting the variable from
+`~/.zshrc` does not work: the desktop app does not pass it on to the sessions it
+starts.) The mod clears itself in sessions that only a terminal is attached to,
+where `statusline-command.sh` draws the line instead. The link's name, `usage`, is
+the label the app shows before the line. Restart the desktop app (Cmd+Q) after
+installing.
 
 ## Not tracked
 
