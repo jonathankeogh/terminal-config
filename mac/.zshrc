@@ -31,10 +31,11 @@ fi
 unset __conda_setup
 # <<< conda initialize <<<
 
-export PATH="$HOME/.local/bin:$PATH"
+# PATH and the yazi `y` wrapper, shared with Linux
+. ~/.config/shell/common.sh
 
 # opencode
-export PATH=/Users/jkeogh/.opencode/bin:$PATH
+export PATH="$HOME/.opencode/bin:$PATH"
 
 # VPS: mosh + tmux (survives sleep/wifi changes); falls back to auto-reconnecting ssh
 vps() {
@@ -68,11 +69,5 @@ vclip() {
 _reset_mouse_mode() { printf '\e[?1000l\e[?1002l\e[?1003l\e[?1006l\e[?1015l' }
 autoload -Uz add-zsh-hook && add-zsh-hook precmd _reset_mouse_mode
 
-# yazi shell wrapper: `y` cd's to yazi's last directory on quit (q); Q quits without cd
-function y() {
-  local tmp cwd; tmp="$(mktemp -t "yazi-cwd.XXXXXX")"
-  command yazi "$@" --cwd-file="$tmp"
-  IFS= read -r -d '' cwd < "$tmp"
-  [ "$cwd" != "$PWD" ] && [ -d "$cwd" ] && builtin cd -- "$cwd" || builtin true
-  command rm -f -- "$tmp"
-}
+# Secrets and this machine's own settings, not tracked (install.sh creates it)
+[ -f ~/.shell.local ] && . ~/.shell.local

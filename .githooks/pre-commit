@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# This repo is public: refuse any commit whose staged changes contain a secret.
+# install.sh points core.hooksPath here. Bypass a false alarm with --no-verify.
+# linux/packages.sh installs gitleaks in ~/.local/bin, which a non-interactive
+# shell may not have on PATH
+PATH="$HOME/.local/bin:$PATH"
+if ! command -v gitleaks >/dev/null; then
+	echo "pre-commit: gitleaks is not installed, so secrets cannot be checked." >&2
+	echo "Run ./install.sh --packages, or commit with --no-verify." >&2
+	exit 1
+fi
+# `gitleaks git` is v8.19+; older releases (Ubuntu's apt package) only have `protect`
+if gitleaks git --help >/dev/null 2>&1; then
+	exec gitleaks git --pre-commit --staged --redact --no-banner --log-level warn
+else
+	exec gitleaks protect --staged --redact --no-banner --log-level warn
+fi

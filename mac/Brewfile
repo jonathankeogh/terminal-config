@@ -1,0 +1,9 @@
+# Tools this config uses. Installed by ./install.sh --packages (brew bundle).
+brew "git"
+brew "gh"
+brew "gitleaks"   # secret check in .githooks/pre-commit
+brew "mosh"       # vps() in .zshrc
+brew "tmux"
+brew "yazi"
+cask "ghostty"
+cask "miniconda"  # conda block in .zshrc

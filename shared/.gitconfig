@@ -3,3 +3,6 @@
 	email = hellojonathankeogh@gmail.com
 [init]
 	defaultBranch = master
+# This machine's own settings, not tracked (e.g. a work email). Last, so it wins.
+[include]
+	path = ~/.gitconfig.local

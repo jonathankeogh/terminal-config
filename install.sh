@@ -1,7 +1,17 @@
 #!/usr/bin/env bash
 # Symlink this repo's config into $HOME. Safe to re-run: links that are already
 # correct are skipped, and any real file in the way is moved to a backup folder.
+# With --packages it first installs the tools the config uses (mac/Brewfile,
+# linux/packages.sh).
 set -euo pipefail
+
+packages=false
+for arg in "$@"; do
+	case "$arg" in
+	--packages) packages=true ;;
+	*) echo "usage: $0 [--packages]" >&2; exit 2 ;;
+	esac
+done
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKUP="$HOME/.terminal-config-backup/$(date +%Y%m%d-%H%M%S)"
@@ -19,9 +29,17 @@ link() {  # link <path in repo> <destination>
 	echo "linked     ~/${dest#"$HOME"/} -> $1"
 }
 
+if $packages; then
+	case "$(uname -s)" in
+	Darwin) brew bundle --no-upgrade --file="$REPO/mac/Brewfile" ;;
+	Linux) "$REPO/linux/packages.sh" ;;
+	esac
+fi
+
 # --- Every machine ---
 link shared/.gitconfig        "$HOME/.gitconfig"
 link shared/.config/git/ignore "$HOME/.config/git/ignore"
+link shared/.config/shell/common.sh "$HOME/.config/shell/common.sh"
 link shared/.tmux.conf        "$HOME/.tmux.conf"
 link shared/.vimrc            "$HOME/.vimrc"
 link shared/.terminfo         "$HOME/.terminfo"
@@ -38,6 +56,18 @@ for p in tmux-resurrect tmux-continuum; do
 	[ -d "$HOME/.tmux/plugins/$p" ] ||
 		git clone -q "https://github.com/tmux-plugins/$p" "$HOME/.tmux/plugins/$p"
 done
+
+# Secrets and this machine's own settings: never in the repo, sourced last by
+# the shell rc files. Created once, readable only by you.
+if [ ! -e "$HOME/.shell.local" ]; then
+	printf '%s\n' "# This machine only, not in terminal-config: secrets (export FOO_API_KEY=...)" \
+		"# and overrides. Sourced last by .zshrc / .bashrc.local." >"$HOME/.shell.local"
+	chmod 600 "$HOME/.shell.local"
+	echo "created    ~/.shell.local"
+fi
+
+# Block commits that contain secrets (this repo is public)
+git -C "$REPO" config core.hooksPath .githooks
 
 # --- Per OS ---
 case "$(uname -s)" in
