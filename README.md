@@ -43,8 +43,7 @@ pre-commit hook refuses a commit that adds a secret. It applies
 `.githooks/secret-rules.json`) with a small Python script, so nothing needs
 installing and `git pull` updates it everywhere. It leaves out gitleaks' decoding
 of base64 and other encoded blobs, which a config repo does not have. For a false
-alarm, add `gitleaks:allow` to the line, or commit with `--no-verify`. To pick up
-newer gitleaks rules, run `.githooks/update-secret-rules v<version>`.
+alarm, add `gitleaks:allow` to the line, or commit with `--no-verify`.
 
 ## Syncing
 
