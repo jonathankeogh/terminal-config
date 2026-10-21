@@ -1,16 +1,19 @@
 {
+  "env": {
+    "CLAUDE_CODE_PLUGIN_DIRS": "~/.claude/desktop-mods/usage"
+  },
   "attribution": {
     "commit": "",
     "pr": "",
     "sessionUrl": false
   },
   "permissions": {
+    "allow": [
+      "Bash(ls *)"
+    ],
     "defaultMode": "auto"
   },
-  "model": "opus",
-  "env": {
-    "CLAUDE_CODE_PLUGIN_DIRS": "~/.claude/desktop-mods/usage"
-  },
+  "model": "sonnet",
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -31,11 +34,13 @@
   "effortLevel": "medium",
   "modelSettings": {
     "claude-opus-5-5": {
-      "effortLevel": "medium"
+      "effortLevel": "high"
     }
   },
   "tui": "fullscreen",
   "showThinkingSummaries": true,
   "theme": "auto",
+  "autoCompactEnabled": false,
+  "switchModelsOnFlag": false,
   "agentPushNotifEnabled": true
 }
