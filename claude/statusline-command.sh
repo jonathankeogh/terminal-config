@@ -160,6 +160,35 @@ if [ -n "$cache_left" ]; then
     fi
 fi
 
+# Disk used by saved transcripts (the whole projects dir: transcripts, subagent
+# logs, tool results). du over thousands of files is too slow for every refresh,
+# so show a cached value and re-measure in the background when it is over 10
+# minutes old. Touching the cache first stops overlapping refreshes from each
+# starting a du; on the very first run the segment is blank until du finishes.
+transcripts_segment=""
+projects_dir="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects"
+size_cache="${XDG_CACHE_HOME:-$HOME/.cache}/claude-statusline-transcripts-kb"
+if [ -d "$projects_dir" ]; then
+    if [ -z "$(find "$size_cache" -mmin -10 2>/dev/null)" ]; then
+        mkdir -p "$(dirname "$size_cache")" && touch "$size_cache"
+        ( kb=$(du -sk "$projects_dir" 2>/dev/null | cut -f1) \
+            && [ -n "$kb" ] && printf '%s' "$kb" > "$size_cache.tmp" \
+            && mv "$size_cache.tmp" "$size_cache" ) </dev/null >/dev/null 2>&1 &
+    fi
+    kb=$(cat "$size_cache" 2>/dev/null)
+    case "$kb" in
+        ''|*[!0-9]*) ;;
+        *)
+            if [ "$kb" -ge 1048576 ]; then
+                size=$(awk -v k="$kb" 'BEGIN { printf "%.1fGB", k / 1048576 }')
+            else
+                size="$((kb / 1024))MB"
+            fi
+            transcripts_segment=$(printf ' \033[2mtranscripts %s\033[0m' "$size")
+            ;;
+    esac
+fi
+
 identity=$(printf '\033[1;32m%s@%s\033[0m:%s\033[1;33m%s\033[0m' "$user" "$host" "$dir" "$branch_segment")
 
 # Pack the segments into as few lines as fit the terminal, at most 4; anything
@@ -183,7 +212,7 @@ out=""
 line=""
 line_len=0
 lines=1
-for seg in "$identity" "$model_segment" "$cost_segment" "$sess_segment" "$week_segment" "$context_segment" "$cache_segment"; do
+for seg in "$identity" "$model_segment" "$cost_segment" "$sess_segment" "$week_segment" "$context_segment" "$cache_segment" "$transcripts_segment"; do
     seg="${seg# }"
     [ -z "$seg" ] && continue
     len=$(visible_len "$seg")
