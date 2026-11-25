@@ -13,7 +13,7 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "sonnet",
+  "model": "claude-fable-5-2[1m]",
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -35,6 +35,9 @@
   "modelSettings": {
     "claude-opus-5-5": {
       "effortLevel": "high"
+    },
+    "claude-fable-5-2": {
+      "effortLevel": "medium"
     }
   },
   "tui": "fullscreen",
