@@ -51,6 +51,12 @@ link claude/AGENTS.md             "$HOME/.claude/rules/AGENTS.md"
 # Linked everywhere so that path exists; the mod stays off in terminal sessions.
 link claude/desktop-statusline    "$HOME/.claude/desktop-mods/usage"
 
+link antigravity/settings.json         "$HOME/.gemini/antigravity-cli/settings.json"
+link antigravity/statusline-command.sh "$HOME/.gemini/antigravity-cli/statusline-command.sh"
+link antigravity/hooks.json            "$HOME/.gemini/config/hooks.json"
+link antigravity/dublin-time-hook.sh   "$HOME/.gemini/config/dublin-time-hook.sh"
+link claude/AGENTS.md                  "$HOME/.gemini/config/AGENTS.md"
+
 # tmux session persistence plugins (loaded by .tmux.conf)
 for p in tmux-resurrect tmux-continuum; do
 	[ -d "$HOME/.tmux/plugins/$p" ] ||

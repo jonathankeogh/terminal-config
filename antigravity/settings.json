@@ -1,0 +1,21 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/settings.json",
+  "agentMode": "auto",
+  "allowNonWorkspaceAccess": true,
+  "altScreenMode": "always",
+  "colorScheme": "colorblind-friendly dark",
+  "enableTerminalSandbox": true,
+  "historySize": -1,
+  "model": "Gemini 4 Neon (High)",
+  "notifications": true,
+  "permissions": {
+    "allow": [
+      "command(ls *)"
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash \"$HOME/.gemini/antigravity-cli/statusline-command.sh\""
+  },
+  "verbosity": "high"
+}

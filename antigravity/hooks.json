@@ -1,0 +1,11 @@
+{
+  "dublin-time": {
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "bash \"$HOME/.gemini/config/dublin-time-hook.sh\"",
+        "timeout": 5
+      }
+    ]
+  }
+}

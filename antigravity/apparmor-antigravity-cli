@@ -1,0 +1,17 @@
+# Scoped AppArmor profile for Antigravity CLI on Ubuntu 24.04+.
+# Grants unprivileged user namespaces (userns) only to the agy binary so its
+# terminal sandbox and `auto` mode work while keeping
+# kernel.apparmor_restrict_unprivileged_userns=1 enforced for everything else.
+#
+# Install:
+#   sudo install -m 644 ~/terminal-config/antigravity/apparmor-antigravity-cli /etc/apparmor.d/antigravity-cli
+#   sudo /usr/sbin/apparmor_parser -r /etc/apparmor.d/antigravity-cli
+
+abi <abi/4.0>,
+include <tunables/global>
+
+profile antigravity-cli /home/*/.local/bin/agy flags=(unconfined) {
+  userns,
+
+  include if exists <local/antigravity-cli>
+}

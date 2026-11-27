@@ -3,11 +3,12 @@
 All my terminal and Claude Code config in one place, for my Mac and Linux servers.
 
 ```
-shared/   every machine: git, tmux, vim, Ghostty terminfo, shell helpers for zsh and bash
-mac/      zsh (.zshrc, .zprofile) and the Brewfile
-linux/    bash additions (.bashrc.local), scripts in bin/, packages.sh
-claude/   Claude Code: settings, status line, global AGENTS.md, desktop status line mod
-.githooks pre-commit secret check
+shared/      every machine: git, tmux, vim, Ghostty terminfo, shell helpers for zsh and bash
+mac/         zsh (.zshrc, .zprofile) and the Brewfile
+linux/       bash additions (.bashrc.local), scripts in bin/, packages.sh
+claude/      Claude Code: settings, status line, global AGENTS.md, desktop status line mod
+antigravity/ Antigravity CLI: settings, status line, Dublin-time hook (shares claude/AGENTS.md)
+.githooks    pre-commit secret check
 ```
 
 ## Install

@@ -1,0 +1,20 @@
+# Safety net so tokens or session data never get committed if ~/.gemini contents
+# are ever copied in.
+*oauth-token*
+*credentials*
+brain/
+conversations/
+history.jsonl
+log/
+cache/
+annotations/
+crashes/
+implicit/
+presence/
+updater/
+builtin/
+bin/
+*.db
+*.pb
+*.pbtxt
+*.log
