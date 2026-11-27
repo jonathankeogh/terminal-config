@@ -1,6 +1,8 @@
 # Shared by zsh (mac/.zshrc) and bash (linux/.bashrc.local): keep it valid in both.
 export PATH="$HOME/.local/bin:$PATH"
 
+alias agy-d='agy --dangerously-skip-permissions'
+
 # yazi shell wrapper: `y` cd's to yazi's last directory on quit (q); Q quits without cd
 y() {
 	local tmp cwd; tmp="$(mktemp -t "yazi-cwd.XXXXXX")"
